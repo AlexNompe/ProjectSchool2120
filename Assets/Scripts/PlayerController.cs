@@ -1,16 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Device;
 
 public class PlayerController : MonoBehaviour
 {
     public float speed;
     public float camScroll;
+    [Range(0f, 2f)]
+    public float sence;
+    private float senseMultiplyer = 90;
+
+    public Vector2 mousePos;
+    public Vector2 windowSize;
+    public float cameraYRotation;
+    public float cameraXRotation;
+    public float realCameraXrot;
+    public float normalizedCameraXrot;
 
     private Vector2 moveInput;
     private Vector2 moveVelocity;
     private float camInput = 0;
-    public float camVelocity;
+    private float camVelocity;
 
     private Rigidbody rb;
     private GameObject cam;
@@ -18,6 +30,8 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         cam = transform.Find("Main Camera").gameObject;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     private void FixedUpdate()
@@ -33,12 +47,46 @@ public class PlayerController : MonoBehaviour
 
         camVelocity = camInput * camScroll;
 
-        rb.transform.Rotate(new Vector3(0, 1, 0) * camVelocity * Time.deltaTime);
+        //rb.transform.rotation = Quaternion.Euler(new Vector3(0, cameraYRotation, 0));
+        //cam.transform.localRotation = Quaternion.Euler(new Vector3(360 - realCameraXrot, 0, 0));
+        //rb.transform.Rotate(new Vector3(0, 1, 0) * camVelocity * Time.deltaTime);
     }
 
     void Update()
     {
-        
+        mousePos = new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0);
+        windowSize = new Vector2(UnityEngine.Screen.width, UnityEngine.Screen.height);
+        cameraYRotation = rb.transform.localEulerAngles.y;
+        cameraXRotation = cam.transform.localEulerAngles.x;
+
+        normalizedCameraXrot = NormalizeCameraXRotation(cam.transform.localRotation.eulerAngles.x);
+        realCameraXrot = cam.transform.rotation.normalized.eulerAngles.x;
+
+        rb.transform.Rotate(new Vector3(0, mousePos.y, 0) * Time.deltaTime * sence * senseMultiplyer);
+        cam.transform.Rotate(new Vector3(-mousePos.x, 0, 0) * Time.deltaTime * sence * senseMultiplyer);
+        cam.transform.localRotation = Quaternion.Euler(PreventProperCameraXRotation(NormalizeCameraXRotation(cam.transform.localRotation.eulerAngles.x)), cam.transform.localRotation.eulerAngles.y, cam.transform.localRotation.eulerAngles.z);
+    }
+
+    public float NormalizeCameraXRotation(float input)
+    {
+        if (input > 90)
+        {
+            return input - 360;
+        }
+        else return input;
+        return input;
+    }
+    public float PreventProperCameraXRotation(float input)
+    {
+        if (input > 90)
+        {
+            return 90;
+        }
+        else if (input < -90)
+        {
+            return -90;
+        }
+        else return input;
     }
 
     public float Greater0(float i)
